@@ -18,6 +18,8 @@
     <script>
 let postsRef;
 let postsListener = null;
+// 現在の編集対象のID
+let currentEditId = null;
 
 // メッセージ表示処理
 function showMessage(message, type = 'success') {
@@ -222,12 +224,84 @@ function loadPosts() {
     });
 }
 
+// モーダル関連の関数
+function showModal(modalId) {
+    $(`#${modalId}`).fadeIn(200);
+    $('body').addClass('modal-open');
+}
+
+function closeModal(modalId) {
+    $(`#${modalId}`).fadeOut(200);
+    $('body').removeClass('modal-open');
+}
+
+// 更新処理のハンドラ
+function handleUpdate() {
+    if (!currentEditId) return;
+
+    const content = $('#editContent').val();
+    if (!validateContent(content)) return;
+
+    const updates = {
+        content: content,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    postsRef.child(currentEditId).update(updates)
+    .then(() => {
+        showMessage('投稿を更新しました');
+        closeModal('editModal');
+        animateUpdate(currentEditId);
+        currentEditId = null;
+    })
+    .catch((error) => {
+        showMessage('更新に失敗しました：' + error.message, 'error');
+    });
+}
+
+// 削除処理のハンドラ
+function handleDelete() {
+    if (!currentEditId) return;
+
+    const postElement = $(`#post-${currentEditId}`);
+    postElement.addClass('deleting');
+
+    postsRef.child(currentEditId).remove()
+    .then(() => {
+        showMessage('投稿を削除しました');
+        closeModal('deleteModal');
+        currentEditId = null;
+    })
+    .catch((error) => {
+        showMessage('削除に失敗しました：' + error.message, 'error');
+        postElement.removeClass('deleting');
+    });
+}
+
+// モーダルの外側をクリックした時の処理
+$(document).on('click', '.modal-overlay', function() {
+    const modalId = $(this).parent().attr('id');
+    closeModal(modalId);
+});
+
+// ESCキーでモーダルを閉じる
+$(document).on('keydown', function(e) {
+    if (e.key === 'Escape') {
+        $('.modal:visible').each(function() {
+            closeModal(this.id);
+        });
+    }
+});
+
 // 編集の開始
 function startEdit(postId) {
-    const postElement = $(`#post-${postId}`);
-    const content = postElement.find('.post-content').text();
-    postElement.find('textarea').val(content);
-    postElement.addClass('editing');
+    currentEditId = postId;
+    const post = $(`#post-${postId}`);
+    const content = post.find('.post-content').text();
+
+    $('#editContent').val(content);
+    updateCharacterCount('editContent', 'editContentCount', 1000);
+    showModal('editModal');
 }
 
 // 編集のキャンセル
@@ -261,21 +335,8 @@ function updatePost(postId) {
 
 // 投稿の削除
 function deletePost(postId) {
-    if (!confirm('この投稿を削除してもよろしいですか？')) {
-        return;
-    }
-
-    const postElement = $(`#post-${postId}`);
-    postElement.addClass('deleting');
-
-    postsRef.child(postId).remove()
-    .then(() => {
-        showMessage('投稿を削除しました');
-    })
-    .catch((error) => {
-        showMessage('削除に失敗しました：' + error.message, 'error');
-        postElement.removeClass('deleting');
-    });
+    currentEditId = postId;
+    showModal('deleteModal');
 }
 
 // 更新時のアニメーション
@@ -365,6 +426,46 @@ window.addEventListener('unload', function() {
             <div id="loadingSpinner" class="loading-spinner" style="display: none;">
                 <div class="spinner"></div>
                 <p>読み込み中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編集モーダルウィンドウ -->
+    <div id="editModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>投稿を編集</h3>
+                <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <textarea id="editContent" class="form-control"></textarea>
+                    <small class="character-count" id="editContentCount">0/1000</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="handleUpdate()" class="btn-primary">更新</button>
+                <button onclick="closeModal('editModal')" class="btn-cancel">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダルウィンドウ -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>投稿の削除</h3>
+                <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>この投稿を削除してもよろしいですか？</p>
+                <p class="text-danger">この操作は取り消せません。</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="handleDelete()" class="btn-danger">削除</button>
+                <button onclick="closeModal('deleteModal')" class="btn-cancel">キャンセル</button>
             </div>
         </div>
     </div>
