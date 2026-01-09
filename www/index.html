@@ -142,6 +142,12 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+function formatAuthor(email) {
+    if (!email) return '匿名';
+    return 'User-' + email.substring(0, 4);
+}
+
+
 // タイムスタンプのフォーマット
 function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
@@ -191,7 +197,7 @@ function createPostElement(post) {
     return `
         <div class="post" id="post-${post.id}">
             <div class="post-header">
-                <span class="post-author">${escapeHtml(post.author)}</span>
+                <span class="post-author">${formatAuthor(post.author)}</span>
                 <!-- 編集権限があれば、編集・削除機能を表示 -->
                 ${actions}
             </div>
