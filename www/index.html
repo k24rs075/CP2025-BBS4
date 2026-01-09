@@ -518,6 +518,10 @@ $(function() {
 
     // 投稿一覧表示順序選択
     $('#sortOrder').on('change', loadPosts);
+    $('#themeSelect').on('change', function () {
+    $('body').removeClass('light dark');
+    $('body').addClass($(this).val());
+});
 
     // 投稿一覧の初期読み込み
     loadPosts();
@@ -535,6 +539,10 @@ window.addEventListener('unload', () => {
 <body>
     <div class="container">
         <h1>掲示板アプリ</h1>
+        <select id="themeSelect" class="form-control">
+            <option value="light">ライト</option>
+            <option value="dark">ダーク</option>
+        </select>
 
         <!-- メッセージ表示エリア -->
         <div id="messageArea"></div>
