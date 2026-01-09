@@ -154,6 +154,19 @@ function formatTimestamp(timestamp) {
     });
 }
 
+function formatRelativeTime(timestamp) {
+    const diff = Date.now() - timestamp;
+    const min = Math.floor(diff / 60000);
+    const hour = Math.floor(min / 60);
+    const day = Math.floor(hour / 24);
+
+    if (min < 1) return 'たった今';
+    if (min < 60) return `${min}分前`;
+    if (hour < 24) return `${hour}時間前`;
+    return `${day}日前`;
+}
+
+
 // 投稿の編集権限チェック
 function canEditPost(post) {
     return currentUser && post.userId === currentUser.uid;
@@ -196,7 +209,7 @@ function createPostElement(post) {
             </div>
             <div class="post-footer">
                 <span class="post-time">
-                    ${formatTimestamp(post.timestamp)}
+                    ${formatRelativeTime(post.timestamp)}
                 </span>
                 ${post.updatedAt ? `
                     <span class="post-updated">
